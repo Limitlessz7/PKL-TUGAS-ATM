@@ -1,10 +1,22 @@
 require('dotenv').config()
 const { sequelize } = require('./index')
-const { Transaction, TransactionItem } = require('../models')
+const { Transaction, TransactionItem, Admin } = require('../models')
 const { makeCode, computeTotals } = require('../utils/receipt')
 
 async function main() {
   await sequelize.sync({ alter: true })
+
+  // Create default admin
+  const adminExists = await Admin.findOne({ where: { username: 'admin' } })
+  if (!adminExists) {
+    await Admin.create({
+      username: 'admin',
+      password: 'admin123',
+      name: 'Administrator',
+      email: 'admin@example.com'
+    })
+    console.log('Admin user created: username=admin, password=admin123')
+  }
 
   const items = [
     { name: 'Konsultasi', qty: 1, price: 100000 },

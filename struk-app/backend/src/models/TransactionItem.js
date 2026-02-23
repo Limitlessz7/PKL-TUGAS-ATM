@@ -7,7 +7,8 @@ const TransactionItem = sequelize.define('TransactionItem', {
 
   name: { type: DataTypes.STRING(140), allowNull: false },
   qty: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 1 },
-  price: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 }
+  price: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+  deletedAt: { type: DataTypes.DATE, allowNull: true }
 }, {
   tableName: 'transaction_items'
 })

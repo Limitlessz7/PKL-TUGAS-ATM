@@ -1,7 +1,9 @@
 const router = require('express').Router()
 const transactions = require('./transactions')
 const external = require('./external')
+const auth = require('./auth')
 
+router.use('/auth', auth)
 router.use('/transactions', transactions)
 router.use('/external', external)
 

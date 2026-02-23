@@ -1,0 +1,111 @@
+const jwt = require('jsonwebtoken')
+const { Admin } = require('../models')
+
+// In-memory store for failed attempts (reset on server restart)
+// For production, use Redis or database
+const failedAttempts = new Map()
+
+const getFailedAttempts = (identifier) => {
+  const record = failedAttempts.get(identifier)
+  if (!record) return { count: 0, lockedUntil: null }
+
+  // Check if cooldown has expired
+  if (record.lockedUntil && new Date() > record.lockedUntil) {
+    failedAttempts.delete(identifier)
+    return { count: 0, lockedUntil: null }
+  }
+
+  return record
+}
+
+const incrementFailedAttempts = (identifier) => {
+  const record = getFailedAttempts(identifier)
+  const newCount = record.count + 1
+  
+  let lockedUntil = record.lockedUntil
+  if (newCount >= 10) {
+    lockedUntil = new Date(Date.now() + 30000) // 30 seconds
+  }
+
+  failedAttempts.set(identifier, { count: newCount, lockedUntil })
+  return { count: newCount, lockedUntil }
+}
+
+const resetFailedAttempts = (identifier) => {
+  failedAttempts.delete(identifier)
+}
+
+const login = async (req, res) => {
+  try {
+    const { username, password } = req.body
+
+    if (!username || !password) {
+      return res.status(400).json({ message: 'Username dan password harus diisi' })
+    }
+
+    // Check if account is locked
+    const failureRecord = getFailedAttempts(username)
+    if (failureRecord.count >= 10 && failureRecord.lockedUntil) {
+      const remainingSeconds = Math.ceil((failureRecord.lockedUntil - new Date()) / 1000)
+      return res.status(429).json({
+        message: `Akun dikunci. Coba lagi dalam ${remainingSeconds} detik.`,
+        locked: true,
+        remainingSeconds
+      })
+    }
+
+    const admin = await Admin.findOne({ where: { username } })
+
+    if (!admin) {
+      incrementFailedAttempts(username)
+      return res.status(401).json({ message: 'Username atau password salah' })
+    }
+
+    const isPasswordValid = await admin.comparePassword(password)
+
+    if (!isPasswordValid) {
+      const attempt = incrementFailedAttempts(username)
+      
+      if (attempt.count >= 10) {
+        return res.status(429).json({
+          message: 'Terlalu banyak percobaan gagal. Akun dikunci 30 detik.',
+          locked: true,
+          attempts: attempt.count
+        })
+      }
+
+      return res.status(401).json({
+        message: 'Username atau password salah',
+        attempts: attempt.count,
+        attemptsRemaining: 10 - attempt.count
+      })
+    }
+
+    // Reset failed attempts on successful login
+    resetFailedAttempts(username)
+
+    const token = jwt.sign(
+      { id: admin.id, username: admin.username },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+    )
+
+    res.json({
+      data: {
+        token,
+        admin: {
+          id: admin.id,
+          username: admin.username,
+          name: admin.name,
+          email: admin.email
+        }
+      }
+    })
+  } catch (e) {
+    res.status(500).json({ message: e.message })
+  }
+}
+
+module.exports = {
+  login
+}

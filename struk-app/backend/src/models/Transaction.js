@@ -15,7 +15,8 @@ const Transaction = sequelize.define('Transaction', {
   tax: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
   total: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
   paid: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
-  change: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 }
+  change: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+  deletedAt: { type: DataTypes.DATE, allowNull: true }
 }, {
   tableName: 'transactions'
 })

@@ -1,11 +1,14 @@
 <template>
-  <div class="relative">
+  <div class="relative" @mousemove="handleUserActivity" @keydown="handleUserActivity" @click="handleUserActivity">
     <!-- Background Gradient -->
     <div class="absolute inset-0 
       bg-[radial-gradient(1200px_800px_at_20%_-10%,rgba(22,160,133,0.55),transparent),
           radial-gradient(1000px_700px_at_90%_10%,rgba(26,188,156,0.50),transparent),
           radial-gradient(900px_600px_at_50%_110%,rgba(22,160,133,0.40),transparent)]">
     </div>
+
+    <!-- Inactivity Warning Modal -->
+    <InactivityWarning />
 
     <!-- Header -->
     <header class="relative no-print">
@@ -27,6 +30,17 @@
           <RouterLink class="navlink" to="/new">Buat Struk</RouterLink>
           <RouterLink class="navlink" to="/settings">Settings</RouterLink>
           <a class="navlink" href="https://github.com/" target="_blank" rel="noreferrer">Docs</a>
+          
+          <!-- Admin Section -->
+          <div v-if="authStore.isAuthenticated" class="flex items-center gap-2 ml-4 pl-4 border-l border-white/20">
+            <span class="text-slate-200 text-xs">{{ authStore.admin?.name || authStore.admin?.username }}</span>
+            <button 
+              @click="handleLogout"
+              class="navlink"
+            >
+              Logout
+            </button>
+          </div>
         </nav>
       </div>
     </header>
@@ -51,8 +65,43 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
+import InactivityWarning from '../auth/InactivityWarning.vue'
 import logo from '../../assets/logo.png'
+import { onMounted, onUnmounted } from 'vue'
+
+const router = useRouter()
+const authStore = useAuthStore()
 const year = new Date().getFullYear()
+
+let activityTimeout = null
+
+const handleUserActivity = () => {
+  if (!authStore.isAuthenticated) return
+  
+  // Debounce activity updates
+  clearTimeout(activityTimeout)
+  activityTimeout = setTimeout(() => {
+    authStore.updateActivityTime()
+  }, 1000)
+}
+
+const handleLogout = () => {
+  authStore.logout()
+  router.push({ name: 'login' })
+}
+
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    authStore.loadFromStorage()
+  }
+})
+
+onUnmounted(() => {
+  clearTimeout(activityTimeout)
+  authStore.stopInactivityTimer()
+})
 </script>
 
 <style scoped>

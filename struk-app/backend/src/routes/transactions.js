@@ -1,9 +1,10 @@
 const router = require('express').Router()
 const { TransactionController } = require('../controllers')
+const authMiddleware = require('../middleware/auth')
 
-router.get('/', TransactionController.getAll)
-router.get('/:id', TransactionController.getById)
-router.post('/', TransactionController.create)
-router.delete('/:id', TransactionController.destroy)
+router.get('/', authMiddleware, TransactionController.getAll)
+router.get('/:id', authMiddleware, TransactionController.getById)
+router.post('/', authMiddleware, TransactionController.create)
+router.delete('/:id', authMiddleware, TransactionController.destroy)
 
 module.exports = router

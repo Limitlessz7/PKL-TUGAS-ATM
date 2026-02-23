@@ -3,8 +3,9 @@ const { makeCode, computeTotals } = require('../utils/receipt')
 
 const getAll = async (req, res) => {
   const items = await Transaction.findAll({
+    where: { deletedAt: null },
     order: [['createdAt', 'DESC']],
-    include: [{ model: TransactionItem, as: 'items' }]
+    include: [{ model: TransactionItem, as: 'items', where: { deletedAt: null }, required: false }]
   })
   res.json({ data: items })
 }
@@ -12,9 +13,9 @@ const getAll = async (req, res) => {
 const getById = async (req, res) => {
   const id = Number(req.params.id)
   const item = await Transaction.findByPk(id, {
-    include: [{ model: TransactionItem, as: 'items' }]
+    include: [{ model: TransactionItem, as: 'items', where: { deletedAt: null }, required: false }]
   })
-  if (!item) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
+  if (!item || item.deletedAt) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
   res.json({ data: item })
 }
 
@@ -79,10 +80,12 @@ const destroy = async (req, res) => {
   const id = Number(req.params.id)
   const t = await Transaction.sequelize.transaction()
   try {
-    await TransactionItem.destroy({ where: { transactionId: id }, transaction: t })
-    const n = await Transaction.destroy({ where: { id }, transaction: t })
+    const transaction = await Transaction.findByPk(id, { transaction: t })
+    if (!transaction || transaction.deletedAt) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
+    
+    await TransactionItem.update({ deletedAt: new Date() }, { where: { transactionId: id }, transaction: t })
+    await Transaction.update({ deletedAt: new Date() }, { where: { id }, transaction: t })
     await t.commit()
-    if (!n) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
     res.json({ ok: true })
   } catch (e) {
     await t.rollback()
