@@ -29,8 +29,8 @@
           <RouterLink class="navlink" to="/">Dashboard</RouterLink>
           <RouterLink class="navlink" to="/new">Buat Struk</RouterLink>
           <RouterLink class="navlink" to="/deleted">🗑️ Terhapus</RouterLink>
-          <RouterLink class="navlink" to="/settings">Settings</RouterLink>
-          <a class="navlink" href="https://github.com/" target="_blank" rel="noreferrer">Docs</a>
+          <RouterLink class="navlink" to="/settings">Pengaturan</RouterLink>
+          <a class="navlink" href="https://github.com/Limitlessz7/PKL-TUGAS-ATM/" target="_blank" rel="noreferrer">Dokumentasi</a>
           
           <!-- Admin Section -->
           <div v-if="authStore.isAuthenticated" class="flex items-center gap-2 ml-4 pl-4 border-l border-white/20">
