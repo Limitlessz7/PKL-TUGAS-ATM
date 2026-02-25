@@ -9,6 +9,7 @@
 
     <!-- Inactivity Warning Modal -->
     <InactivityWarning />
+    <ToastContainer />
 
     <!-- Header -->
     <header class="relative no-print">
@@ -28,13 +29,21 @@
         <nav class="flex items-center gap-2 text-sm">
           <RouterLink class="navlink" to="/">Dashboard</RouterLink>
           <RouterLink class="navlink" to="/new">Buat Struk</RouterLink>
-          <RouterLink class="navlink" to="/deleted">🗑️ Terhapus</RouterLink>
+          <RouterLink v-if="authStore.isAdmin" class="navlink" to="/deleted">🗑️ Terhapus</RouterLink>
           <RouterLink class="navlink" to="/settings">Pengaturan</RouterLink>
           <a class="navlink" href="https://github.com/Limitlessz7/PKL-TUGAS-ATM/" target="_blank" rel="noreferrer">Dokumentasi</a>
           
-          <!-- Admin Section -->
-          <div v-if="authStore.isAuthenticated" class="flex items-center gap-2 ml-4 pl-4 border-l border-white/20">
-            <span class="text-slate-200 text-xs">{{ authStore.admin?.name || authStore.admin?.username }}</span>
+          <!-- User Section -->
+          <div v-if="authStore.isAuthenticated" class="flex items-center gap-3 ml-4 pl-4 border-l border-white/20">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm text-white font-semibold">{{ (authStore.user?.name || authStore.user?.username || 'U').charAt(0).toUpperCase() }}</div>
+              <div class="flex flex-col leading-tight">
+                <span class="text-slate-200 text-sm">{{ authStore.user?.name || authStore.user?.username }}</span>
+                <div class="flex items-center gap-2">
+                  <RoleBadge :role="authStore.user?.role" />
+                </div>
+              </div>
+            </div>
             <button 
               @click="handleLogout"
               class="navlink"
@@ -70,6 +79,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import InactivityWarning from '../auth/InactivityWarning.vue'
 import logo from '../../assets/logo.png'
+import RoleBadge from '../ui/RoleBadge.vue'
+import ToastContainer from '../ui/ToastContainer.vue'
 import { onMounted, onUnmounted } from 'vue'
 
 const router = useRouter()

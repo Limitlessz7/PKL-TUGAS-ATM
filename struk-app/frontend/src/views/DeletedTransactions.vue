@@ -60,6 +60,7 @@
                     👁️
                   </button>
                   <button
+                    v-if="authStore.isAdmin"
                     @click="restoreTransaction(trx.id)"
                     :disabled="loadingRestore === trx.id"
                     class="px-3 py-1.5 text-xs font-medium text-emerald-300 hover:text-emerald-200 bg-emerald-500/10 hover:bg-emerald-500/20 rounded transition disabled:opacity-50"
@@ -67,13 +68,25 @@
                   >
                     {{ loadingRestore === trx.id ? '⏳' : '↩️' }}
                   </button>
+                  <button v-else disabled class="px-3 py-1.5 text-xs font-medium text-emerald-300/60 bg-emerald-500/5 rounded opacity-60 cursor-not-allowed" title="Hanya admin yang dapat memulihkan">
+                    🔒
+                  </button>
                   <button
+                    v-if="authStore.isAdmin"
                     @click="permanentDelete(trx.id)"
                     :disabled="loadingDelete === trx.id"
                     class="px-3 py-1.5 text-xs font-medium text-red-300 hover:text-red-200 bg-red-500/10 hover:bg-red-500/20 rounded transition disabled:opacity-50"
                     title="Hapus Permanen"
                   >
                     {{ loadingDelete === trx.id ? '⏳' : '🗑️' }}
+                  </button>
+                  <button
+                    v-else
+                    @click="() => uiStore.push('Aksi ini hanya untuk admin', 'warning')"
+                    class="px-3 py-1.5 text-xs font-medium text-red-500/60 bg-red-500/5 rounded opacity-80"
+                    title="Hanya admin yang dapat menghapus permanen"
+                  >
+                    🔒
                   </button>
                 </div>
               </td>
@@ -162,11 +175,15 @@
                 Tutup
               </button>
               <button
+                v-if="authStore.isAdmin"
                 @click="restoreTransaction(selectedTransaction.id)"
                 :disabled="loadingRestore === selectedTransaction.id"
                 class="flex-1 px-4 py-2 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition disabled:opacity-50"
               >
                 {{ loadingRestore === selectedTransaction.id ? 'Memulihkan...' : 'Pulihkan Transaksi' }}
+              </button>
+              <button v-else disabled class="flex-1 px-4 py-2 text-sm font-semibold text-white bg-emerald-500/10 rounded-lg opacity-60 cursor-not-allowed" title="Hanya admin yang dapat memulihkan">
+                🔒 Hanya admin
               </button>
             </div>
           </div>
@@ -181,6 +198,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../lib/http'
 import Card from '../components/ui/Card.vue'
+import { useAuthStore } from '../stores/auth'
+import { useUiStore } from '../stores/ui'
 
 const router = useRouter()
 const deletedTransactions = ref([])
@@ -188,6 +207,8 @@ const selectedTransaction = ref(null)
 const isLoading = ref(false)
 const loadingRestore = ref(null)
 const loadingDelete = ref(null)
+const authStore = useAuthStore()
+const uiStore = useUiStore()
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('id-ID').format(value)

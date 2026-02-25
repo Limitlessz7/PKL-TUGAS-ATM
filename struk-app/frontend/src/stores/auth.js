@@ -9,7 +9,7 @@ let warningTimer = null
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: null,
-    admin: null,
+    user: null,
     isLoading: false,
     error: null,
     failedAttempts: 0,
@@ -20,7 +20,8 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isAuthenticated: (state) => !!state.token,
-    isAdmin: (state) => !!state.admin,
+    isAdmin: (state) => !!(state.user && state.user.role === 'admin'),
+    isCashier: (state) => !!(state.user && state.user.role === 'cashier'),
     isCooldown: (state) => state.cooldownUntil !== null && new Date() < state.cooldownUntil,
     cooldownSeconds: (state) => {
       if (!state.cooldownUntil) return 0
@@ -31,13 +32,13 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     loadFromStorage() {
       const token = localStorage.getItem('auth_token')
-      const admin = localStorage.getItem('auth_admin')
+      const user = localStorage.getItem('auth_user')
       const failedAttempts = localStorage.getItem('auth_failed_attempts')
       const cooldownUntil = localStorage.getItem('auth_cooldown_until')
       
-      if (token && admin) {
+      if (token && user) {
         this.token = token
-        this.admin = JSON.parse(admin)
+        this.user = JSON.parse(user)
         this.lastActivityTime = Date.now()
         this.startInactivityTimer()
       }
@@ -137,14 +138,14 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       try {
         const response = await api.post('/auth/login', { username, password })
-        const { token, admin } = response.data.data
-        
+        const { token, user } = response.data.data
+
         this.token = token
-        this.admin = admin
+        this.user = user
         this.lastActivityTime = Date.now()
         
         localStorage.setItem('auth_token', token)
-        localStorage.setItem('auth_admin', JSON.stringify(admin))
+        localStorage.setItem('auth_user', JSON.stringify(user))
         
         this.resetFailedAttempts()
         this.clearCooldown()
@@ -175,12 +176,12 @@ export const useAuthStore = defineStore('auth', {
     },
     logout() {
       this.token = null
-      this.admin = null
+      this.user = null
       this.lastActivityTime = null
       this.error = null
       this.stopInactivityTimer()
       localStorage.removeItem('auth_token')
-      localStorage.removeItem('auth_admin')
+      localStorage.removeItem('auth_user')
     }
   }
 })

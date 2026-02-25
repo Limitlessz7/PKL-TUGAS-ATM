@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken')
-const { Admin } = require('../models')
+const { User } = require('../models')
 
 // In-memory store for failed attempts (reset on server restart)
 // For production, use Redis or database
@@ -35,6 +35,38 @@ const resetFailedAttempts = (identifier) => {
   failedAttempts.delete(identifier)
 }
 
+// Debug/unlock endpoint helper
+const unlock = async (req, res) => {
+  try {
+    const { username } = req.body
+    if (!username) return res.status(400).json({ message: 'username required' })
+    resetFailedAttempts(username)
+    return res.json({ message: 'unlocked', username })
+  } catch (e) {
+    return res.status(500).json({ message: e.message })
+  }
+}
+
+// Dev: return current failed attempts map
+const getLocks = async (req, res) => {
+  try {
+    const entries = Array.from(failedAttempts.entries()).map(([username, record]) => ({ username, ...record }))
+    return res.json({ data: entries })
+  } catch (e) {
+    return res.status(500).json({ message: e.message })
+  }
+}
+
+// Dev: reset all locks
+const resetAllLocks = async (req, res) => {
+  try {
+    failedAttempts.clear()
+    return res.json({ message: 'all locks cleared' })
+  } catch (e) {
+    return res.status(500).json({ message: e.message })
+  }
+}
+
 const login = async (req, res) => {
   try {
     const { username, password } = req.body
@@ -54,14 +86,14 @@ const login = async (req, res) => {
       })
     }
 
-    const admin = await Admin.findOne({ where: { username } })
+    const user = await User.findOne({ where: { username } })
 
-    if (!admin) {
+    if (!user) {
       incrementFailedAttempts(username)
       return res.status(401).json({ message: 'Username atau password salah' })
     }
 
-    const isPasswordValid = await admin.comparePassword(password)
+    const isPasswordValid = await user.comparePassword(password)
 
     if (!isPasswordValid) {
       const attempt = incrementFailedAttempts(username)
@@ -85,7 +117,7 @@ const login = async (req, res) => {
     resetFailedAttempts(username)
 
     const token = jwt.sign(
-      { id: admin.id, username: admin.username },
+      { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     )
@@ -93,11 +125,12 @@ const login = async (req, res) => {
     res.json({
       data: {
         token,
-        admin: {
-          id: admin.id,
-          username: admin.username,
-          name: admin.name,
-          email: admin.email
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          email: user.email,
+          role: user.role
         }
       }
     })
@@ -107,5 +140,8 @@ const login = async (req, res) => {
 }
 
 module.exports = {
-  login
+  login,
+  unlock,
+  getLocks,
+  resetAllLocks
 }

@@ -5,6 +5,7 @@ const Transaction = sequelize.define('Transaction', {
   id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
   code: { type: DataTypes.STRING(32), allowNull: false, unique: true },
 
+  userId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
   patientName: { type: DataTypes.STRING(120), allowNull: true },
   unit: { type: DataTypes.STRING(120), allowNull: true },
   paymentMethod: { type: DataTypes.STRING(30), allowNull: false, defaultValue: 'Cash' },
@@ -21,5 +22,4 @@ const Transaction = sequelize.define('Transaction', {
   tableName: 'transactions'
 })
 
-module.exports = { sequelize }
 module.exports = Transaction

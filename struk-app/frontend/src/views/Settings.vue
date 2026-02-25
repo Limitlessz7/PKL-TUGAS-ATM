@@ -6,8 +6,9 @@
         <p class="text-slate-300 mt-1">Atur identitas klinik untuk tercetak di struk.</p>
       </div>
       <div class="flex gap-2 no-print">
-        <Button variant="ghost" @click="reset">Reset</Button>
-        <Button @click="save">Simpan</Button>
+        <Button variant="ghost" @click="reset" :disabled="!isAdmin">Reset</Button>
+        <Button @click="save" :disabled="!isAdmin">Simpan</Button>
+        <div v-if="!isAdmin" class="text-sm text-yellow-300 py-2 px-3 rounded bg-yellow-600/10">Hanya admin dapat mengubah pengaturan</div>
       </div>
     </div>
 
@@ -16,15 +17,15 @@
         <div class="space-y-4">
           <div>
             <label class="label">Nama Klinik</label>
-            <input v-model="clinic.name" class="input" />
+            <input v-model="clinic.name" class="input" :readonly="!isAdmin" />
           </div>
           <div>
             <label class="label">Alamat</label>
-            <textarea v-model="clinic.address" rows="3" class="input"></textarea>
+            <textarea v-model="clinic.address" rows="3" class="input" :readonly="!isAdmin"></textarea>
           </div>
           <div>
             <label class="label">Telepon</label>
-            <input v-model="clinic.phone" class="input" />
+            <input v-model="clinic.phone" class="input" :readonly="!isAdmin" />
           </div>
           <p class="text-xs text-slate-400">Data disimpan di browser (localStorage).</p>
         </div>
@@ -39,11 +40,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive } from 'vue'
+import { computed, onMounted } from 'vue'
 import Card from '../components/ui/Card.vue'
 import Button from '../components/ui/Button.vue'
 import ReceiptPaper from '../components/receipt/ReceiptPaper.vue'
 import { shortDate } from '../lib/format'
+import { useAuthStore } from '../stores/auth'
+import { useUiStore } from '../stores/ui'
+import { useAppStore } from '../stores/app'
 
 const preview = computed(() => ({
   code: 'TRX-EXAMPLE-001',
@@ -63,26 +67,42 @@ const preview = computed(() => ({
   note: 'Terima kasih.'
 }))
 
-const clinic = reactive({
-  name: 'Klinik Ratnasari Sehat RSA',
-  address: 'Alamat Klinik (ubah di Settings)',
-  phone: '+62 811-2111-1570'
+const app = useAppStore()
+const clinic = computed({
+  get: () => app.clinic,
+  set: (v) => { app.clinic = v }
 })
 
+const auth = useAuthStore()
+const ui = useUiStore()
+
+const isAdmin = computed(() => auth.isAdmin)
+
 onMounted(() => {
-  const raw = localStorage.getItem('struk_app_settings')
-  if (raw) Object.assign(clinic, JSON.parse(raw))
+  app.load()
 })
 
 function save() {
-  localStorage.setItem('struk_app_settings', JSON.stringify(clinic))
-  alert('Tersimpan.')
+  if (!isAdmin.value) {
+    ui.push('Hanya admin yang dapat menyimpan pengaturan', 'warning')
+    return
+  }
+  app.save()
+  ui.push('Pengaturan tersimpan', 'success')
 }
 
 function reset() {
-  clinic.name = 'Klinik Ratnasari Sehat RSA'
-  clinic.address = 'Alamat Klinik (ubah di Settings)'
-  clinic.phone = '+62 811-2111-1570'
+  if (!isAdmin.value) {
+    ui.push('Hanya admin yang dapat mereset pengaturan', 'warning')
+    return
+  }
+  app.clinic = {
+    name: 'Klinik Ratnasari Sehat RSA',
+    address: 'Alamat Klinik (ubah di Settings)',
+    phone: '+62 811-2111-1570'
+  }
+  app.save()
+  ui.push('Pengaturan dikembalikan ke default', 'success')
 }
 </script>
 

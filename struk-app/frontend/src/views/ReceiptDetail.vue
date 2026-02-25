@@ -8,7 +8,8 @@
       <div class="flex gap-2">
         <RouterLink to="/new"><Button variant="ghost">➕ Baru</Button></RouterLink>
         <Button variant="ghost" @click="print">🖨️ Print</Button>
-        <Button variant="danger" @click="remove" :disabled="deleting">🗑️ Hapus</Button>
+        <Button v-if="auth.isAdmin" variant="danger" @click="remove" :disabled="deleting">🗑️ Hapus</Button>
+        <Button v-else variant="danger" @click="showCannotDelete">🔒 Hapus</Button>
       </div>
     </div>
 
@@ -29,6 +30,8 @@ import ReceiptPaper from '../components/receipt/ReceiptPaper.vue'
 import { useReceiptsStore } from '../stores/receipts'
 import { useAppStore } from '../stores/app'
 import { shortDate } from '../lib/format'
+import { useAuthStore } from '../stores/auth'
+import { useUiStore } from '../stores/ui'
 
 const props = defineProps({ id: String })
 const store = useReceiptsStore()
@@ -38,6 +41,8 @@ const loading = ref(true)
 const deleting = ref(false)
 const error = ref(null)
 const receipt = ref(null)
+const auth = useAuthStore()
+const ui = useUiStore()
 
 onMounted(async () => {
   app.load()
@@ -97,6 +102,12 @@ async function remove() {
   } finally {
     deleting.value = false
   }
+}
+
+const isAdmin = computed(() => auth.isAdmin)
+
+function showCannotDelete() {
+  ui.push('Hanya admin yang dapat menghapus struk', 'warning')
 }
 </script>
 
